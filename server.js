@@ -15,6 +15,8 @@ connectDB();
 // Import all routes
 const auth = require('./routes/auth');
 const services = require('./routes/services');
+const bookings = require('./routes/bookings');
+const users = require('./routes/users');
 // const books = require('./routes/books');
 
 const app = express();
@@ -31,6 +33,7 @@ api.use(cookieParser());
 // Example: All routers go here (MUST USE "api" ROUTER)
 api.use("/auth", auth);
 api.use("/services", services);
+api.use("/bookings", bookings);
 // api.use("/books", require("./routes/books"));
 
 // Mount app router to api router
