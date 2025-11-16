@@ -1,6 +1,7 @@
 // controllers/bookings.js
 const Booking = require('../models/Booking');
 const Service = require('../models/Service');
+const {ensureChatForBooking} = require('./chat');
 
 const STATUS_ENUM = Booking.schema.path('status').enumValues;
 const PAYMENT_STATUS_ENUM = Booking.schema.path('paymentStatus').enumValues;
@@ -220,6 +221,11 @@ exports.createBooking = async (req, res) => {
     };
 
     const booking = await Booking.create(bookingPayload);
+    try {
+      await ensureChatForBooking(booking);
+    } catch (chatError) {
+      console.error('Failed to auto-create chat for booking:', chatError);
+    }
     return res
       .status(201)
       .json({ success: true, data: sanitizeBooking(booking) });

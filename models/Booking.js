@@ -1,6 +1,6 @@
 // models/Booking.js
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
+const {randomUUID} = require('crypto');
 
 const STATUS_ENUM = ['pending', 'confirmed', 'completed', 'cancelled'];
 const PAYMENT_STATUS_ENUM = [
@@ -18,7 +18,7 @@ const BookingSchema = new mongoose.Schema(
   {
     _id: {
       type: String,
-      default: uuidv4,
+      default: randomUUID,
       required: true,
     },
     customerId: {

@@ -18,6 +18,8 @@ const services = require('./routes/services');
 const bookings = require('./routes/bookings');
 const reviews = require('./routes/reviews');
 const users = require('./routes/users');
+const chats = require('./routes/chats');
+const transactions = require('./routes/transactions');
 // const books = require('./routes/books');
 
 const app = express();
@@ -37,6 +39,8 @@ api.use("/services", services);
 api.use("/bookings", bookings);
 api.use("/reviews", reviews);
 api.use("/users", users);
+api.use("/chats", chats);
+api.use("/transactions", transactions);
 // api.use("/books", require("./routes/books"));
 
 // Mount app router to api router
@@ -55,6 +59,15 @@ const swaggerOptions = {
                 url: 'http://localhost:5003/api/v1'
             }
         ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                },
+            },
+        },
     },
     apis: ['./routes/*.js'],
 };
