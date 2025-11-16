@@ -5,35 +5,46 @@ const User = require('../models/User');
 // @access  Public
 exports.register = async (req,res,next) => {
     try {
-        const {name, email, password, role} = req.body;
+        const {
+            email, username, password, firstName, lastName,
+            birthdate, idCard, phone, gender, interestedGender, type, img
+        } = req.body;
+
+        // Basic required checks
+        if (!email || !username || !password || !firstName || !lastName || !birthdate || !gender || !interestedGender) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
 
         //Create user
-        const user = await User.create({
-            name,
-            email,
-            password,
-            role
+        const user = new User({
+            email, username, password, firstName, lastName,
+            birthdate, idCard, phone, gender, interestedGender, type, img
         });
+        await user.save();
 
         //Create token
-        // const token=user.getSignedJwtToken();
-        // res.status(200).json({success: true, token});
-        sendTokenResponse(user, 200, res);
+        const token = user.getSignedJwtToken();
+
+        return res.status(201).json({ token, user: user.toJSON() });
     } catch(err) {
         res.status(400).json({success:false});
         console.log(err.stack);
     }
 }
 
+
+// @desc    Login User
+// @route   POST /api/v1/auth/login
+// @access  Public
 exports.login = async (req,res,next) => {
     try {
         const {email, password} = req.body;
 
         //Validate email & password
         if(!email || !password) {
-            return res.status(4).json({
+            return res.status(400).json({
                 success: false,
-                msg: "Please provide an email and password"
+                message: "Missing Credentials"
             });
         }
 
@@ -41,9 +52,9 @@ exports.login = async (req,res,next) => {
         const user = await User.findOne({email}).select('+password');
 
         if(!user) {
-            return res.status(400).json({
+            return res.status(401).json({
                 success: false,
-                msg: 'Invalid credentials'
+                message: 'Invalid credentials'
             });
         }
 
@@ -53,52 +64,17 @@ exports.login = async (req,res,next) => {
         if(!isMatch) {
             return res.status(401).json({
                 success:false, 
-                msg: 'Invalid credentials'
+                message: 'Invalid credentials'
             });
         }
 
         //Create token
-        // const token = user.getSignedJwtToken();
-        // res.status(200).json({success: true, token});
-        sendTokenResponse(user, 200, res);
+        const token = user.getSignedJwtToken();
+
+        return res.json({success: true, token, user: user.toJSON() });
     } catch(err) {
-        return res.status(401).json({success: false, msg: 'Cannot convert email or password to string'});
+        return res.status(500).json({success: false, msg: 'Internal Server error'});
     }
-}
-
-exports.logout = async (req,res,next) => {
-    res.cookie('token', 'none', {
-        expires: new Date(Date.now() + 10 * 1000),
-        httpOnly: true,
-    });
-
-    res.status(200).json({
-        success: true,
-        data: {}
-    });
-}
-
-//Get token from model, create cookie and send response
-const sendTokenResponse = (user, statusCode, res) => {
-    //Create Token
-    const token = user.getSignedJwtToken();
-
-    const options = {
-        expires: new Date(Date.now() +process.env.JWT_COOKIE_EXPIRE*24*60*60*1000),
-        httpOnly: true
-    };
-
-    if(process.env.NODE_ENV==='production') {
-        options.secure=true;
-    }
-
-    res.status(statusCode)/*.cookie('token', token, options)*/.json({
-        success: true,
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token
-    })
 }
 
 // @desc    Get current Logged in user
@@ -112,3 +88,29 @@ exports.getMe = async (req,res,next) => {
         data: user,
     })
 }
+
+// @desc    Generate new token for user
+// @route   POST /api/v1/auth/refresh
+// @access  Private
+exports.refresh = async (req, res) => {
+  try {
+    // req.user is already populated by auth middleware
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: "User not found" });
+    }
+
+    const newToken = user.getSignedJwtToken();
+
+    return res.status(200).json({
+      success: true,
+      token: newToken,
+      user: user.toJSON()
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Internal Server error" });
+  }
+};
+

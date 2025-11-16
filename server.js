@@ -12,13 +12,12 @@ dotenv.config({path: './config/.env'});
 // connect to DB
 connectDB();
 
+// Import all routes
 const auth = require('./routes/auth');
 // const books = require('./routes/books');
 
-
 const app = express();
 const api = express(); // Sub app that holds all API routes
-
 
 // Body express
 api.set('query parser', 'extended');
