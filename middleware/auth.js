@@ -1,43 +1,50 @@
+// middleware/auth.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-//Protect routes
-exports.protect = async (req,res,next) => {
+const SECRET = process.env.JWT_SECRET || 'change_this_secret';
+
+// Protect routes
+exports.protect = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization || '';
     let token;
 
-    if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        token = req.headers.authorization.split(' ')[1];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1].trim();
     }
 
-    //Make sure token exists
-    if(!token || token == 'null') {
-        return res.status(401).json({success: false, message: 'Not authorize to access this route'});
+    if (!token || token === 'null') {
+      return res.status(401).json({ success: false, message: 'Not authorized to access this route' });
     }
 
-    try {
-        //Verify Token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, SECRET);
 
-        console.log(decoded);
-
-        req.user = await User.findById(decoded.id);
-
-        next();
-    } catch(err) {
-        console.log(err.stack);
-        return res.status(401).json({success:false, message: 'Not authorize to access this route'});
+    // findById works because your _id is a string (UUID)
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
     }
-}
 
-//Grant access to specific roles
-exports.authorize = (...roles) => {
-    return (req,res,next) => {
-        if(!roles.includes(req.user.role)) {
-            return res.status(403).json({
-                success: false,
-                message: `User role ${req.user.role} is not authorized to access this route`
-            });
-        }
-        next();
-    }
-}
+    req.user = user;
+    next();
+  } catch (err) {
+    console.error(err.stack);
+    return res.status(401).json({ success: false, message: 'Not authorized to access this route' });
+  }
+};
+
+// Grant access to specific roles (uses `type` field from your schema)
+exports.authorize = (...roles) => (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: 'Not authenticated' });
+  }
+
+  if (!roles.includes(req.user.type)) {
+    return res.status(403).json({
+      success: false,
+      message: `User type ${req.user.type} is not authorized to access this route`
+    });
+  }
+  next();
+};
