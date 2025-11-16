@@ -45,7 +45,7 @@ router.use(protect);
  * /transactions:
  *   get:
  *     tags: [Transactions]
- *    summary: List transactions (admin sees all, others only own)
+ *     summary: List transactions (admin sees all, others only own)
  *     security:
  *       - bearerAuth: []
  *     parameters:
