@@ -2,7 +2,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
+const {randomUUID} = require('crypto');
 
 const GENDER_ENUM = ['ชาย', 'หญิง'];
 const ROLE_ENUM = ['customer', 'provider', 'admin'];
@@ -12,7 +12,7 @@ const SALT_ROUNDS = 10;
 const UserSchema = new mongoose.Schema({
     _id: {
         type: String,
-        default: uuidv4,
+        default: randomUUID,
         required: true
     },
     email: {
