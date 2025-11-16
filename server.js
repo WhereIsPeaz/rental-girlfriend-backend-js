@@ -34,6 +34,7 @@ api.use(cookieParser());
 api.use("/auth", auth);
 api.use("/services", services);
 api.use("/bookings", bookings);
+api.use("/users", users);
 // api.use("/books", require("./routes/books"));
 
 // Mount app router to api router
