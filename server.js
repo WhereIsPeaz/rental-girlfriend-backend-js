@@ -18,6 +18,7 @@ const services = require('./routes/services');
 const bookings = require('./routes/bookings');
 const users = require('./routes/users');
 const chats = require('./routes/chats');
+const transactions = require('./routes/transactions');
 // const books = require('./routes/books');
 
 const app = express();
@@ -37,6 +38,7 @@ api.use("/services", services);
 api.use("/bookings", bookings);
 api.use("/users", users);
 api.use("/chats", chats);
+api.use("/transactions", transactions);
 // api.use("/books", require("./routes/books"));
 
 // Mount app router to api router
