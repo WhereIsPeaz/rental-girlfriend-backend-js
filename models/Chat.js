@@ -59,10 +59,20 @@ const ChatSchema = new mongoose.Schema(
   }
 );
 
+ChatSchema.virtual('id').get(function () {
+  return this._id;
+});
+
 ChatSchema.methods.isParticipant = function (userId) {
   if (!userId) return false;
   const normalized = String(userId);
   return this.customerId === normalized || this.providerId === normalized;
+};
+
+ChatSchema.methods.toJSON = function () {
+  const obj = this.toObject({virtuals: true});
+  delete obj.__v;
+  return obj;
 };
 
 module.exports = mongoose.model('Chat', ChatSchema);
