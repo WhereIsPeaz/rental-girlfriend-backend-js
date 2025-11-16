@@ -16,6 +16,7 @@ connectDB();
 const auth = require('./routes/auth');
 const services = require('./routes/services');
 const bookings = require('./routes/bookings');
+const reviews = require('./routes/reviews');
 const users = require('./routes/users');
 // const books = require('./routes/books');
 
@@ -34,6 +35,7 @@ api.use(cookieParser());
 api.use("/auth", auth);
 api.use("/services", services);
 api.use("/bookings", bookings);
+api.use("/reviews", reviews);
 api.use("/users", users);
 // api.use("/books", require("./routes/books"));
 
