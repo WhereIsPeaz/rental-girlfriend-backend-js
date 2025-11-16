@@ -77,6 +77,10 @@ const UserSchema = new mongoose.Schema({
         type: String, 
         default: '' 
     },
+    generalTimeSetting: {
+        type: Object,
+        default: {} // shape is flexible; you can tighten later
+    },
     joined: {
         type: String,
         default: () => String(new Date().getFullYear())
