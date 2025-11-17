@@ -8,7 +8,7 @@ const GENDER_ENUM = ['ชาย', 'หญิง'];
 const ROLE_ENUM = ['customer', 'provider', 'admin'];
 const AUTO_VERIFY_USER = true;
 const SALT_ROUNDS = 10;
-const PHONE_REGEX = /^\+?[1-9]\d{6,14}$/;
+const PHONE_REGEX = /^\+?[0-9]\d{6,14}$/;
 
 const UserSchema = new mongoose.Schema({
     _id: {
