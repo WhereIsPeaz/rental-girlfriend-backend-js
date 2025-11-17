@@ -43,6 +43,38 @@ const router = express.Router();
  *           type: string
  *         providerId:
  *           type: string
+ *         customerName:
+ *           type: string
+ *           nullable: true
+ *           description: Username of the customer (or "ผู้ใช้ที่ถูกลบ" if deleted)
+ *         providerName:
+ *           type: string
+ *           nullable: true
+ *           description: Username of the provider (or "ผู้ใช้ที่ถูกลบ" if deleted)
+ *         customerImg:
+ *           type: string
+ *           nullable: true
+ *           description: Profile image of the customer
+ *         providerImg:
+ *           type: string
+ *           nullable: true
+ *           description: Profile image of the provider
+ *         bookingDetails:
+ *           type: object
+ *           properties:
+ *             bookingDate:
+ *               type: string
+ *             startTime:
+ *               type: string
+ *             endTime:
+ *               type: string
+ *             serviceName:
+ *               type: string
+ *               nullable: true
+ *             status:
+ *               type: string
+ *             totalAmount:
+ *               type: number
  *         messages:
  *           type: array
  *           items:
@@ -56,12 +88,12 @@ router.use(protect);
  * /chats:
  *   get:
  *     tags: [Chats]
- *     summary: List chat IDs (admin only)
+ *     summary: List user's chats (returns chat IDs for admin, full chat objects for regular users)
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Array of chat IDs
+ *         description: Array of chats
  *         content:
  *           application/json:
  *             schema:
@@ -72,14 +104,14 @@ router.use(protect);
  *                 data:
  *                   type: array
  *                   items:
- *                     type: string
+ *                     $ref: '#/components/schemas/Chat'
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
  *   post:
  *     tags: [Chats]
- *     summary: Create chat for an existing booking (admin only)
+ *     summary: Create or get existing chat for a booking (user must be participant)
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -93,7 +125,7 @@ router.use(protect);
  *                 type: string
  *     responses:
  *       201:
- *         description: Chat created
+ *         description: Chat created or retrieved
  *         content:
  *           application/json:
  *             schema:
@@ -105,13 +137,15 @@ router.use(protect);
  *                   $ref: '#/components/schemas/Chat'
  *       400:
  *         description: Invalid request
+ *       403:
+ *         description: Not a participant of the booking
  *       404:
  *         description: Booking not found
  */
 router
   .route('/')
-  .get(authorize('admin'), listChats)
-  .post(authorize('admin'), createChat);
+  .get(listChats)
+  .post(createChat);
 
 /**
  * @swagger

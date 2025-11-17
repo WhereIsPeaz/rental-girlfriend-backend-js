@@ -2,6 +2,15 @@ version: '3.8'
 
 services:
 
+  front:
+    build:
+      context: ../rental-girlfriend-frontend # Context is the 'folder_b' (frontend) folder
+      dockerfile: ../rental-girlfriend-frontend/Dockerfile # Path to Dockerfile.dev
+    container_name: front
+    restart: unless-stopped
+    env_file:
+      - ../rental-girlfriend-frontend/.env
+
   api:
     build: .
     container_name: api
