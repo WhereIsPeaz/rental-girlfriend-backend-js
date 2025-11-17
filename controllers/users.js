@@ -301,3 +301,64 @@ exports.updateGeneralTimeSetting = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+/**
+ * GET /users/:id/balance
+ * Calculate user balance from transactions
+ * (self or admin)
+ */
+exports.getUserBalance = async (req, res) => {
+  try {
+    const Transaction = require('../models/Transaction');
+    const id = req.params.id;
+    
+    if (!req.user) return res.status(401).json({ success: false, message: 'Not authenticated' });
+    if (req.user.type !== 'admin' && req.user.id !== id) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Calculate balance from transactions based on transaction type
+    const transactions = await Transaction.find({ customerId: id });
+    
+    const balance = transactions.reduce((sum, t) => {
+      // Add for topup and refund, subtract for payment and withdrawal
+      if (t.type === 'topup' || t.type === 'refund') {
+        return sum + (t.amount || 0);
+      } else if (t.type === 'payment' || t.type === 'withdrawal') {
+        return sum - (t.amount || 0);
+      }
+      return sum;
+    }, 0);
+
+    // Calculate total earnings (topup and refund transactions)
+    const totalEarnings = transactions
+      .filter(t => t.type === 'topup' || t.type === 'refund')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Calculate total spent (payment and withdrawal transactions)
+    const totalSpent = transactions
+      .filter(t => t.type === 'payment' || t.type === 'withdrawal')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Pending earnings (can be calculated from pending bookings if needed)
+    const pendingEarnings = 0; // Placeholder - could be calculated from bookings
+
+    return res.json({
+      success: true,
+      data: {
+        userId: id,
+        balance,
+        pendingEarnings,
+        totalEarnings,
+        totalSpent,
+        lastUpdated: new Date().toISOString(),
+      },
+    });
+  } catch (err) {
+    console.error('getUserBalance', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
