@@ -2,6 +2,13 @@ version: '3.8'
 
 services:
 
+  front:
+    build: ../rental-girlfriend-frontend/
+    container_name: front
+    restart: unless-stopped
+    env_file:
+      - ../rental-girlfriend-frontend/.env
+
   api:
     build: .
     container_name: api
