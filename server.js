@@ -44,7 +44,7 @@ api.use(xss());
 api.use(cookieParser());
 api.use(hpp());
 api.use(cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: ["http://localhost:3000", "http://localhost:3001", "https://rental-girlfriend-fe.vercel.app"],
     credentials: true
 }));
 
