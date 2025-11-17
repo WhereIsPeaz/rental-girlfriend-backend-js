@@ -1,6 +1,7 @@
 // controllers/bookings.js
 const Booking = require('../models/Booking');
 const Service = require('../models/Service');
+const Chat = require('../models/Chat');
 const {ensureChatForBooking} = require('./chat');
 
 const STATUS_ENUM = Booking.schema.path('status').enumValues;
@@ -17,6 +18,13 @@ const sanitizeBooking = (doc) => {
   const copy = { ...doc };
   delete copy.__v;
   return copy;
+};
+
+const formatBookingResponse = (booking, chatId) => {
+  const data = sanitizeBooking(booking);
+  if (!data) return data;
+  data.chatId = chatId || null;
+  return data;
 };
 
 const toNumber = (value) => {
@@ -117,10 +125,19 @@ exports.listBookings = async (req, res) => {
         .limit(limit),
     ]);
 
+    let chatMap = new Map();
+    const bookingIds = bookings.map((booking) => booking._id);
+    if (bookingIds.length) {
+      const chats = await Chat.find({bookingId: {$in: bookingIds}}).select('_id bookingId');
+      chatMap = new Map(chats.map((chat) => [chat.bookingId, chat._id]));
+    }
+
     return res.json({
       success: true,
       meta: { page, limit, total },
-      data: bookings.map((booking) => sanitizeBooking(booking)),
+      data: bookings.map((booking) =>
+        formatBookingResponse(booking, chatMap.get(String(booking._id)))
+      ),
     });
   } catch (err) {
     console.error('listBookings error:', err);
@@ -142,7 +159,8 @@ exports.getBooking = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
 
-    return res.json({ success: true, data: sanitizeBooking(booking) });
+    const chat = await Chat.findOne({bookingId: booking._id}).select('_id');
+    return res.json({ success: true, data: formatBookingResponse(booking, chat?._id) });
   } catch (err) {
     console.error('getBooking error:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
@@ -221,14 +239,15 @@ exports.createBooking = async (req, res) => {
     };
 
     const booking = await Booking.create(bookingPayload);
+    let chat = null;
     try {
-      await ensureChatForBooking(booking);
+      chat = await ensureChatForBooking(booking);
     } catch (chatError) {
       console.error('Failed to auto-create chat for booking:', chatError);
     }
     return res
       .status(201)
-      .json({ success: true, data: sanitizeBooking(booking) });
+      .json({ success: true, data: formatBookingResponse(booking, chat?._id) });
   } catch (err) {
     console.error('createBooking error:', err);
     if (err && err.name === 'ValidationError') {
@@ -303,8 +322,9 @@ exports.updateBooking = async (req, res) => {
     }
 
     await booking.save();
+    const chat = await Chat.findOne({bookingId: booking._id}).select('_id');
 
-    return res.json({ success: true, data: sanitizeBooking(booking) });
+    return res.json({ success: true, data: formatBookingResponse(booking, chat?._id) });
   } catch (err) {
     console.error('updateBooking error:', err);
     if (err && err.message && err.message.includes('must be a valid number')) {
