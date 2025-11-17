@@ -15,6 +15,64 @@ function sanitizeUser(userDoc) {
 }
 
 /**
+ * Helper: validate and normalize base64 or data URI image string.
+ * Returns { ok: true, dataUri } on success or { ok: false, message } on failure.
+ *
+ * Accepts:
+ *  - full data URI: "data:image/png;base64,AAAA..."
+ *  - raw base64 string: "AAAA..." (assumed image/png unless mimeHint provided)
+ *
+ * Allowed mime types: image/png, image/jpeg, image/jpg, image/gif, image/webp
+ * Max size default: 5 MB (configurable).
+ */
+function validateBase64Image(input, options = {}) {
+  const MAX_BYTES = options.maxBytes || 5 * 1024 * 1024; // default 5MB
+  const mimeHint = options.mimeHint || null; // optional forced mime if provided
+
+  if (!input || typeof input !== 'string') {
+    return { ok: false, message: 'image must be a string' };
+  }
+
+  const trimmed = input.trim();
+
+  // Try data URI match first
+  const dataUriMatch = trimmed.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/);
+  let mimeType = null;
+  let b64 = null;
+
+  if (dataUriMatch) {
+    mimeType = dataUriMatch[1].toLowerCase();
+    b64 = dataUriMatch[2].replace(/\s+/g, '');
+  } else {
+    // treat as raw base64
+    b64 = trimmed.replace(/\s+/g, '');
+    if (!/^[A-Za-z0-9+/=]+$/.test(b64)) {
+      return { ok: false, message: 'image must be valid base64 or a data URI' };
+    }
+    mimeType = mimeHint || 'image/png';
+  }
+
+  // Normalize jpeg mime (some clients use image/jpg)
+  if (mimeType === 'image/jpg') mimeType = 'image/jpeg';
+
+  const allowed = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+  if (!allowed.has(mimeType)) {
+    return { ok: false, message: `unsupported image type: ${mimeType}. allowed: png, jpeg, gif, webp` };
+  }
+
+  // Estimate bytes from base64 length: bytes = (len * 3) / 4 - padding
+  const padding = (b64.endsWith('==') ? 2 : (b64.endsWith('=') ? 1 : 0));
+  const approxBytes = Math.floor((b64.length * 3) / 4) - padding;
+  if (approxBytes > MAX_BYTES) {
+    return { ok: false, message: `image too large: ${approxBytes} bytes. max ${MAX_BYTES} bytes` };
+  }
+
+  // Construct canonical data URI to store
+  const dataUri = `data:${mimeType};base64,${b64}`;
+  return { ok: true, dataUri, size: approxBytes, mimeType };
+}
+
+/**
  * GET /users
  * PUBLIC
  */
@@ -91,6 +149,8 @@ exports.getUser = async (req, res) => {
 /**
  * POST /users
  * Create new user (admin only)
+ *
+ * Now accepts optional `img` in req.body (base64 or data URI). If present, it will be validated and stored.
  */
 exports.createUser = async (req, res) => {
   try {
@@ -103,14 +163,28 @@ exports.createUser = async (req, res) => {
       birthdate, idCard, phone, gender, interestedGender, type, img
     } = req.body;
 
-    if (!email || !username || !password || !firstName || !lastName || !birthdate || !idCard || !phone || !gender || !interestedGender || !type || !img) {
+    // NOTE: img is optional now — do not require it
+    if (!email || !username || !password || !firstName || !lastName || !birthdate || !idCard || !phone || !gender || !interestedGender || !type) {
       return res.status(400).json({ success: false, message: 'missing field' });
     }
 
-    const user = await User.create({
+    // If img provided, validate it
+    let imgToStore = null;
+    if (typeof img !== 'undefined' && img !== null && img !== '') {
+      const v = validateBase64Image(img);
+      if (!v.ok) {
+        return res.status(400).json({ success: false, message: `Invalid image: ${v.message}` });
+      }
+      imgToStore = v.dataUri;
+    }
+
+    const userPayload = {
       email, username, password, firstName, lastName,
-      birthdate, idCard, phone, gender, interestedGender, type, img
-    });
+      birthdate, idCard, phone, gender, interestedGender, type
+    };
+    if (imgToStore) userPayload.img = imgToStore;
+
+    const user = await User.create(userPayload);
 
     return res.status(201).json({ success: true, data: sanitizeUser(user) });
   } catch (err) {
@@ -127,9 +201,12 @@ exports.createUser = async (req, res) => {
   }
 };
 
+
 /**
  * PUT /users/:id
  * Update user (self or admin)
+ *
+ * If `img` is present in req.body it will be validated as base64/data URI and saved.
  */
 exports.updateUser = async (req, res) => {
   try {
@@ -147,6 +224,15 @@ exports.updateUser = async (req, res) => {
     }
     if ('password' in req.body) updates.password = req.body.password;
 
+    // If img present, validate and normalize to data URI
+    if ('img' in updates && updates.img != null && updates.img !== '') {
+      const v = validateBase64Image(updates.img);
+      if (!v.ok) {
+        return res.status(400).json({ success: false, message: `Invalid image: ${v.message}` });
+      }
+      updates.img = v.dataUri;
+    }
+
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
@@ -163,6 +249,7 @@ exports.updateUser = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 
 /**
  * DELETE /users/:id
@@ -187,76 +274,6 @@ exports.deleteUser = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
-
-/**
- * POST /users/:id/profile-image
- * Save just the image path of S3 URL sent by frontend in body { img: <url> }
- * (self or admin)
- */
-// POST /users/:id/profile-image  — self or admin
-exports.uploadProfileImage = async (req, res) => {
-  try {
-    const id = req.params.id;
-
-    // Must be logged in AND self/admin
-    if (!req.user) {
-      return res.status(401).json({ success: false, message: 'Not authenticated' });
-    }
-    if (req.user.type !== 'admin' && req.user.id !== id) {
-      return res.status(403).json({ success: false, message: 'Forbidden' });
-    }
-
-    // Expecting: { "path": "profiles/12345.png" }
-    const { path } = req.body;
-
-    if (!path || typeof path !== 'string') {
-      return res.status(400).json({
-        success: false,
-        message: 'path (string) is required'
-      });
-    }
-
-    // Optional safety: prevent full URLs
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-      return res.status(400).json({
-        success: false,
-        message: 'Provide only the S3 object path, not the full URL'
-      });
-    }
-
-    // Optional safety: ensure no absolute Unix/Windows paths
-    if (path.startsWith('/') || /^[A-Za-z]:\\/.test(path)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Provide a relative S3 object path only'
-      });
-    }
-
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    // Save only the path into database
-    user.img = path;
-    await user.save();
-
-    return res.json({
-      success: true,
-      data: user.toJSON()
-    });
-  } catch (err) {
-    console.error('uploadProfileImage error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-};
-
 
 /**
  * PUT /users/:id/general-time-setting
