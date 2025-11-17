@@ -68,25 +68,6 @@ test('getChat allows admin access', async () => {
   assert.deepEqual(res.body.data.messages, chat.messages);
 });
 
-test('getChatByBooking returns chat id', async () => {
-  const chat = {
-    _id: 'chat',
-    bookingId: 'booking-1',
-    isParticipant: () => true,
-  };
-  const ChatModel = {
-    findOne: async () => chat,
-  };
-  const {getChatByBooking} = buildChatController({ChatModel});
-  const req = {params: {bookingId: 'booking-1'}, user: {id: 'cust', type: 'customer'}};
-  const res = createRes();
-
-  await getChatByBooking(req, res);
-
-  assert.equal(res.statusCode, 200);
-  assert.equal(res.body.data.id, 'chat');
-});
-
 test('postMessage stores trimmed content for participant', async () => {
   const messages = [];
   const chat = {

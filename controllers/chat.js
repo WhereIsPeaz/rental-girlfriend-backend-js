@@ -67,27 +67,6 @@ const buildChatController = ({ChatModel = Chat, BookingModel = Booking} = {}) =>
     }
   };
 
-  const getChatByBooking = async (req, res) => {
-    try {
-      const chat = await ChatModel.findOne({bookingId: req.params.bookingId});
-      if (!chat) {
-        return res.status(404).json({success: false, message: 'Chat not found'});
-      }
-
-      if (!canViewChat(chat, req.user)) {
-        return res.status(403).json({success: false, message: 'Forbidden'});
-      }
-
-      return res.json({
-        success: true,
-        data: {id: chat._id, bookingId: chat.bookingId},
-      });
-    } catch (err) {
-      console.error('getChatByBooking error:', err);
-      return res.status(500).json({success: false, message: 'Unable to fetch chat'});
-    }
-  };
-
   const createChat = async (req, res) => {
     try {
       const bookingId = req.body?.bookingId;
@@ -206,7 +185,6 @@ const buildChatController = ({ChatModel = Chat, BookingModel = Booking} = {}) =>
   return {
     listChats,
     getChat,
-    getChatByBooking,
     createChat,
     updateChat,
     deleteChat,
