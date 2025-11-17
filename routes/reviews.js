@@ -27,12 +27,15 @@ const router = express.Router();
  *           type: string
  *         serviceId:
  *           type: string
+ *         bookingId:
+ *           type: string
+ *           description: Booking identifier the review is linked to
  *         customerId:
  *           type: string
  *         rating:
  *           type: number
  *           format: float
- *           minimum: 1
+ *           minimum: 0
  *           maximum: 5
  *         comment:
  *           type: string
@@ -43,6 +46,7 @@ const router = express.Router();
  *         - id
  *         - serviceId
  *         - customerId
+ *         - bookingId
  *         - rating
  *         - createdAt
  *     ReviewCreateInput:
@@ -54,6 +58,9 @@ const router = express.Router();
  *           type: number
  *         comment:
  *           type: string
+ *         bookingId:
+ *           type: string
+ *           description: Booking identifier tied to this review
  *         customerId:
  *           type: string
  *           description: Only admins can override customerId
@@ -75,6 +82,10 @@ const router = express.Router();
  *           type: string
  *       - in: query
  *         name: customerId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: bookingId
  *         schema:
  *           type: string
  *       - in: query

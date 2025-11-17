@@ -54,7 +54,13 @@ const router = express.Router();
  *           type: array
  *           items:
  *             type: string
- *           example: ["services/abc.jpg", "services/abc-2.jpg"]
+ *           description: >
+ *             Array of image strings. Each entry should be either a full Data URI
+ *             (e.g. "data:image/png;base64,....") or a raw base64 string.
+ *             The server validates and stores canonical Data URIs in the DB.
+ *           example:
+ *             - "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+ *             - "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
  *         rating:
  *           type: number
  *           format: float
@@ -98,6 +104,13 @@ const router = express.Router();
  *           type: array
  *           items:
  *             type: string
+ *           description: >
+ *             Optional. Array of images (Data URI or base64). Each image will be
+ *             validated (allowed mime types: png, jpeg, gif, webp) and normalized
+ *             to a Data URI before being stored. Max images default: 10.
+ *           example:
+ *             - "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+ *             - "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
  *         rating:
  *           type: number
  *         reviewCount:

@@ -22,6 +22,11 @@ const ensureChatForBookingInternal = async (booking, ChatModel) => {
 };
 
 const buildChatController = ({ChatModel = Chat, BookingModel = Booking} = {}) => {
+  const canViewChat = (chat, user) => {
+    if (!chat || !user) return false;
+    return isAdmin(user) || chat.isParticipant(currentUserId(user));
+  };
+
   const listChats = async (req, res) => {
     try {
       const chats = await ChatModel.find();
@@ -42,9 +47,7 @@ const buildChatController = ({ChatModel = Chat, BookingModel = Booking} = {}) =>
         return res.status(404).json({success: false, message: 'Chat not found'});
       }
 
-      const userId = currentUserId(req.user);
-      const canView = isAdmin(req.user) || chat.isParticipant(userId);
-      if (!canView) {
+      if (!canViewChat(chat, req.user)) {
         return res.status(403).json({success: false, message: 'Forbidden'});
       }
 

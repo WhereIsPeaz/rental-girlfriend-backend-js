@@ -47,7 +47,8 @@ const { protect, authorize } = require('../middleware/auth');
  *           example: "customer"
  *         img:
  *           type: string
- *           example: "/uploads/profiles/4f8c9a3b-avatar.jpg"
+ *           description: "Stored image data. May be a Data URI (data:image/...) or raw base64 string."
+ *           example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
  *         joined:
  *           type: string
  *           example: "2025"
@@ -66,6 +67,7 @@ const { protect, authorize } = require('../middleware/auth');
  *         - birthdate
  *         - gender
  *         - interestedGender
+ *         - type
  *       properties:
  *         email:
  *           type: string
@@ -100,7 +102,8 @@ const { protect, authorize } = require('../middleware/auth');
  *           enum: ["customer","provider","admin"]
  *         img:
  *           type: string
- *           example: "/uploads/profiles/..."
+ *           description: "Optional. Base64 or Data URI. If provided it will be validated and stored."
+ *           example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
  *
  *     UserUpdateRequest:
  *       type: object
@@ -133,22 +136,13 @@ const { protect, authorize } = require('../middleware/auth');
  *           enum: ["customer","provider","admin"]
  *         img:
  *           type: string
+ *           description: "Optional. Base64 or Data URI. If present it will be validated."
  *         joined:
  *           type: string
  *         verified:
  *           type: boolean
  *         generalTimeSetting:
  *           type: object
- *
- *     ProfileImageRequest:
- *       type: object
- *       required:
- *         - imgPath
- *       properties:
- *         imgPath:
- *           type: string
- *           description: "Path only (server stores path), e.g. /uploads/profiles/uuid.jpg"
- *           example: "/uploads/profiles/4f8c9a3b-avatar.jpg"
  *
  *     GeneralTimeSetting:
  *       type: object
@@ -338,46 +332,6 @@ const { protect, authorize } = require('../middleware/auth');
  *       '404':
  *         description: User not found
  *
- * /users/{id}/profile-image:
- *   post:
- *     summary: Save profile image path (S3 path or uploads path) for user (self or admin)
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/ProfileImageRequest'
- *     responses:
- *       '200':
- *         description: Updated user with img path
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   $ref: '#/components/schemas/UserPublic'
- *       '400':
- *         description: Bad request (missing or invalid URL/path)
- *       '401':
- *         description: Not authenticated
- *       '403':
- *         description: Forbidden
- *       '404':
- *         description: User not found
- *
  * /users/{id}/general-time-setting:
  *   put:
  *     summary: Update user's generalTimeSetting (self or admin)
@@ -417,7 +371,6 @@ const { protect, authorize } = require('../middleware/auth');
  *         description: User not found
  */
 
-
 // Public routes
 router.get('/', usersCtrl.listUsers);       // PUBLIC
 router.get('/:id', usersCtrl.getUser);      // PUBLIC
@@ -430,9 +383,6 @@ router.put('/:id', protect, usersCtrl.updateUser);
 
 // Self or admin delete
 router.delete('/:id', protect, usersCtrl.deleteUser);
-
-// Self or admin profile image update
-router.post('/:id/profile-image', protect, usersCtrl.uploadProfileImage);
 
 // Self or admin general time setting update
 router.put('/:id/general-time-setting', protect, usersCtrl.updateGeneralTimeSetting);
