@@ -76,7 +76,7 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDocs));
 
 const PORT = process.env.PORT || 5003;
-const HOST = process.env.PORT || '127.0.0.1';
+const HOST = process.env.HOST || '127.0.0.1';
 const server = app.listen(PORT, HOST, console.log('Server running in', process.env.NODE_ENV, 'mode on port', PORT, 'on host', HOST));
 
 process.on('unhandledRejection', (err, promise)=> {
