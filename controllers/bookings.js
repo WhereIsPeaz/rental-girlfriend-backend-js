@@ -434,6 +434,23 @@ exports.updateBooking = async (req, res) => {
           note: `รายได้จากการให้บริการ - ${booking.serviceName}`,
         });
       }
+
+      // Update service bookingCount (sync with actual completed bookings count)
+      const service = await Service.findById(booking.serviceId);
+
+      if (service) {
+        // Count total completed bookings for this service
+        const completedBookingsCount = await Booking.countDocuments({
+          serviceId: booking.serviceId,
+          status: "completed",
+        });
+
+        // Always sync to actual count
+        if (completedBookingsCount !== service.bookingCount) {
+          service.bookingCount = completedBookingsCount;
+          await service.save();
+        }
+      }
     }
 
     await booking.save();
