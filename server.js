@@ -3,6 +3,12 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const cookieParser = require('cookie-parser');
 
+const mongoSanitize = require('@exortek/express-mongo-sanitize');
+const helmet = require('helmet');
+const {xss} = require('express-xss-sanitizer');
+const hpp = require('hpp');
+const cors = require('cors');
+
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUI = require('swagger-ui-express');
 
@@ -32,6 +38,12 @@ api.set('query parser', 'extended');
 // Middlewares
 api.use(express.json());
 api.use(cookieParser());
+api.use(mongoSanitize());
+api.use(helmet());
+api.use(xss());
+api.use(cookieParser());
+api.use(hpp());
+api.use(cors());
 
 // Example: All routers go here (MUST USE "api" ROUTER)
 api.use("/auth", auth);
