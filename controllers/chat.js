@@ -1,5 +1,6 @@
 const Chat = require('../models/Chat');
 const Booking = require('../models/Booking');
+const User = require('../models/User');
 
 const currentUserId = (user = {}) =>
   user?.id || user?._id ? String(user.id || user._id) : '';
@@ -21,10 +22,42 @@ const ensureChatForBookingInternal = async (booking, ChatModel) => {
   return ChatModel.create(payload);
 };
 
-const buildChatController = ({ChatModel = Chat, BookingModel = Booking} = {}) => {
+const buildChatController = ({ChatModel = Chat, BookingModel = Booking, UserModel = User} = {}) => {
   const canViewChat = (chat, user) => {
     if (!chat || !user) return false;
     return isAdmin(user) || chat.isParticipant(currentUserId(user));
+  };
+
+  const resolveParticipantNames = async (chat) => {
+    try {
+      if (!UserModel || typeof UserModel.find !== 'function' || !chat) {
+        return {customerName: null, providerName: null};
+      }
+      const ids = [chat.customerId, chat.providerId].filter(Boolean);
+      if (!ids.length) {
+        return {customerName: null, providerName: null};
+      }
+      const query = UserModel.find({_id: {$in: ids}});
+      const users =
+        query && typeof query.select === 'function'
+          ? await query.select('_id firstName lastName username email')
+          : await query;
+
+      const nameMap = new Map();
+      (users || []).forEach((user) => {
+        const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+        const fallback = user.username || user.email || user._id;
+        nameMap.set(String(user._id), fullName || fallback || null);
+      });
+
+      return {
+        customerName: nameMap.get(String(chat.customerId)) || null,
+        providerName: nameMap.get(String(chat.providerId)) || null,
+      };
+    } catch (err) {
+      console.error('resolveParticipantNames error:', err);
+      return {customerName: null, providerName: null};
+    }
   };
 
   const listChats = async (req, res) => {
@@ -51,6 +84,8 @@ const buildChatController = ({ChatModel = Chat, BookingModel = Booking} = {}) =>
         return res.status(403).json({success: false, message: 'Forbidden'});
       }
 
+      const {customerName, providerName} = await resolveParticipantNames(chat);
+
       return res.json({
         success: true,
         data: {
@@ -58,6 +93,8 @@ const buildChatController = ({ChatModel = Chat, BookingModel = Booking} = {}) =>
           bookingId: chat.bookingId,
           customerId: chat.customerId,
           providerId: chat.providerId,
+          customerName,
+          providerName,
           messages: chat.messages,
         },
       });
