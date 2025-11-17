@@ -81,8 +81,16 @@ api.use(mongoSanitize());
 api.use(helmet());
 api.use(xss());
 api.use(hpp());
-
-api.use(cors());
+api.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://rental-girlfriend-fe.vercel.app",
+    ],
+    credentials: true,
+  })
+);
 
 // Example: All routers go here (MUST USE "api" ROUTER)
 api.use("/auth", auth);
@@ -129,9 +137,18 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerDocs));
 
 const PORT = process.env.PORT || 5003;
+const HOST = process.env.HOST || "127.0.0.1";
 const server = app.listen(
   PORT,
-  console.log("Server running in", process.env.NODE_ENV, "mode on port", PORT)
+  HOST,
+  console.log(
+    "Server running in",
+    process.env.NODE_ENV,
+    "mode on port",
+    PORT,
+    "on host",
+    HOST
+  )
 );
 
 process.on("unhandledRejection", (err, promise) => {
