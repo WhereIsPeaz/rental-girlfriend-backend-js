@@ -77,7 +77,6 @@ api.use((req, res, next) => {
   next();
 });
 
-api.use(mongoSanitize());
 api.use(helmet());
 api.use(xss());
 api.use(hpp());
