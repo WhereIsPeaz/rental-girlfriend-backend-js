@@ -369,6 +369,52 @@ const { protect, authorize } = require('../middleware/auth');
  *         description: Forbidden
  *       '404':
  *         description: User not found
+ *
+ * /users/{id}/balance:
+ *   get:
+ *     summary: Get user balance calculated from transactions
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: User balance
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     balance:
+ *                       type: number
+ *                     pendingEarnings:
+ *                       type: number
+ *                     totalEarnings:
+ *                       type: number
+ *                     totalSpent:
+ *                       type: number
+ *                     lastUpdated:
+ *                       type: string
+ *                       format: date-time
+ *       '401':
+ *         description: Not authenticated
+ *       '403':
+ *         description: Forbidden
+ *       '404':
+ *         description: User not found
  */
 
 // Public routes
@@ -386,5 +432,8 @@ router.delete('/:id', protect, usersCtrl.deleteUser);
 
 // Self or admin general time setting update
 router.put('/:id/general-time-setting', protect, usersCtrl.updateGeneralTimeSetting);
+
+// Self or admin balance
+router.get('/:id/balance', protect, usersCtrl.getUserBalance);
 
 module.exports = router;

@@ -27,7 +27,7 @@ exports.register = async (req,res,next) => {
 
         return res.status(201).json({ token, user: user.toJSON() });
     } catch(err) {
-        res.status(400).json({success:false});
+        res.status(400).json({success:false, message: err});
         console.log(err.stack);
     }
 }
