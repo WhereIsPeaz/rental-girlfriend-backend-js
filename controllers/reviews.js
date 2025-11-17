@@ -125,13 +125,6 @@ exports.createReview = async (req, res) => {
         .json({ success: false, message: 'bookingId is required' });
     }
 
-    const service = await Service.findById(req.body.serviceId);
-    if (!service) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'Service not found' });
-    }
-
     const booking = await Booking.findById(req.body.bookingId);
     if (!booking) {
       return res
@@ -139,11 +132,12 @@ exports.createReview = async (req, res) => {
         .json({ success: false, message: 'Booking not found' });
     }
 
-    const serviceIdString = service.id || service._id;
-    if (String(booking.serviceId) !== String(serviceIdString)) {
+    // Verify service exists using serviceId from booking
+    const service = await Service.findById(booking.serviceId);
+    if (!service) {
       return res
-        .status(400)
-        .json({ success: false, message: 'bookingId does not belong to the provided serviceId' });
+        .status(404)
+        .json({ success: false, message: 'Service not found' });
     }
 
     const authenticatedUserId = currentUserId(req);
