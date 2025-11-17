@@ -103,8 +103,8 @@ exports.createUser = async (req, res) => {
       birthdate, idCard, phone, gender, interestedGender, type, img
     } = req.body;
 
-    if (!email || !username || !password) {
-      return res.status(400).json({ success: false, message: 'email, username and password required' });
+    if (!email || !username || !password || !firstName || !lastName || !birthdate || !idCard || !phone || !gender || !interestedGender || !type || !img) {
+      return res.status(400).json({ success: false, message: 'missing field' });
     }
 
     const user = await User.create({
