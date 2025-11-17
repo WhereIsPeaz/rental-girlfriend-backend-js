@@ -6,8 +6,6 @@ services:
     build: .
     container_name: api
     restart: unless-stopped
-    ports:
-      - "5003:5003"
     env_file:
       - ./config/.env
 
