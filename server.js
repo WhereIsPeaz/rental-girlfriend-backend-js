@@ -43,7 +43,10 @@ api.use(helmet());
 api.use(xss());
 api.use(cookieParser());
 api.use(hpp());
-api.use(cors());
+api.use(cors({
+    origin: ["http://localhost:3000"],
+    credentials: true
+}));
 
 // Example: All routers go here (MUST USE "api" ROUTER)
 api.use("/auth", auth);
