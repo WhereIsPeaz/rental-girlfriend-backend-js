@@ -1,13 +1,13 @@
 // routes/bookings.js
-const express = require('express');
+const express = require("express");
 const {
   listBookings,
   getBooking,
   createBooking,
   updateBooking,
   deleteBooking,
-} = require('../controllers/bookings');
-const { protect } = require('../middleware/auth');
+} = require("../controllers/bookings");
+const { protect } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -174,6 +174,11 @@ const router = express.Router();
  *         name: limit
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: includeDetails
+ *         schema:
+ *           type: boolean
+ *         description: Include provider/customer details and review status (reduces API calls)
  *     responses:
  *       200:
  *         description: Paginated list of bookings
@@ -221,10 +226,7 @@ const router = express.Router();
  *                 data:
  *                   $ref: '#/components/schemas/Booking'
  */
-router
-  .route('/')
-  .get(protect, listBookings)
-  .post(protect, createBooking);
+router.route("/").get(protect, listBookings).post(protect, createBooking);
 
 /**
  * @swagger
@@ -329,7 +331,7 @@ router
  *                   type: string
  */
 router
-  .route('/:id')
+  .route("/:id")
   .get(protect, getBooking)
   .put(protect, updateBooking)
   .delete(protect, deleteBooking);

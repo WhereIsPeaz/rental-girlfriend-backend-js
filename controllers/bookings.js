@@ -4,6 +4,8 @@ const Service = require("../models/Service");
 const Chat = require("../models/Chat");
 const Transaction = require("../models/Transaction");
 const Payment = require("../models/Payment");
+const User = require("../models/User");
+const Review = require("../models/Review");
 const { ensureChatForBooking } = require("./chat");
 
 const STATUS_ENUM = Booking.schema.path("status").enumValues;
@@ -119,6 +121,7 @@ exports.listBookings = async (req, res) => {
 
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
     const limit = Math.min(100, parseInt(req.query.limit || "20", 10));
+    const includeDetails = req.query.includeDetails === 'true';
 
     const [total, bookings] = await Promise.all([
       Booking.countDocuments(filter),
@@ -129,20 +132,75 @@ exports.listBookings = async (req, res) => {
     ]);
 
     let chatMap = new Map();
+    let providerMap = new Map();
+    let customerMap = new Map();
+    let reviewMap = new Map();
+    
     const bookingIds = bookings.map((booking) => booking._id);
+    
     if (bookingIds.length) {
+      // Fetch chats
       const chats = await Chat.find({ bookingId: { $in: bookingIds } }).select(
         "_id bookingId"
       );
       chatMap = new Map(chats.map((chat) => [chat.bookingId, chat._id]));
+
+      // Fetch user details if requested
+      if (includeDetails) {
+        const providerIds = [...new Set(bookings.map(b => b.providerId))];
+        const customerIds = [...new Set(bookings.map(b => b.customerId))];
+        
+        const [providers, customers, reviews] = await Promise.all([
+          User.find({ _id: { $in: providerIds } }).select('_id firstName lastName username email img'),
+          User.find({ _id: { $in: customerIds } }).select('_id firstName lastName username email img'),
+          Review.find({ bookingId: { $in: bookingIds } }).select('bookingId'),
+        ]);
+
+        providerMap = new Map(providers.map(p => [String(p._id), p]));
+        customerMap = new Map(customers.map(c => [String(c._id), c]));
+        reviewMap = new Map(reviews.map(r => [String(r.bookingId), true]));
+      }
     }
+
+    const responseData = bookings.map((booking) => {
+      const data = formatBookingResponse(booking, chatMap.get(String(booking._id)));
+      
+      if (includeDetails) {
+        const provider = providerMap.get(String(booking.providerId));
+        const customer = customerMap.get(String(booking.customerId));
+        
+        if (provider) {
+          data.providerDetails = {
+            id: provider._id,
+            firstName: provider.firstName,
+            lastName: provider.lastName,
+            username: provider.username,
+            email: provider.email,
+            img: provider.img,
+          };
+        }
+        
+        if (customer) {
+          data.customerDetails = {
+            id: customer._id,
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            username: customer.username,
+            email: customer.email,
+            img: customer.img,
+          };
+        }
+        
+        data.hasReview = reviewMap.has(String(booking._id));
+      }
+      
+      return data;
+    });
 
     return res.json({
       success: true,
       meta: { page, limit, total },
-      data: bookings.map((booking) =>
-        formatBookingResponse(booking, chatMap.get(String(booking._id)))
-      ),
+      data: responseData,
     });
   } catch (err) {
     console.error("listBookings error:", err);
