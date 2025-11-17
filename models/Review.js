@@ -9,6 +9,12 @@ const ReviewSchema = new mongoose.Schema(
       default: uuidv4,
       required: true,
     },
+    bookingId: {
+      type: String,
+      ref: 'Booking',
+      required: [true, 'bookingId is required'],
+      index: true,
+    },
     serviceId: {
       type: String,
       ref: 'Service',
@@ -23,7 +29,7 @@ const ReviewSchema = new mongoose.Schema(
     },
     rating: {
       type: Number,
-      min: [1, 'rating must be at least 1'],
+      min: [0, 'rating must be at least 0'],
       max: [5, 'rating must be at most 5'],
       required: [true, 'rating is required'],
     },
