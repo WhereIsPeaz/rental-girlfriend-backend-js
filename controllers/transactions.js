@@ -139,6 +139,7 @@ const buildTransactionController = ({TransactionModel = Transaction, UserModel =
   };
 
   const createTransaction = (req, res) => performTransaction(req, res, 'credit');
+  const withdrawTransaction = (req, res) => performTransaction(req, res, 'debit');
 
   const paymentTransaction = async (req, res) => {
     try {
@@ -220,6 +221,7 @@ const buildTransactionController = ({TransactionModel = Transaction, UserModel =
     listTransactions,
     getTransaction,
     createTransaction,
+    withdrawTransaction,
     paymentTransaction,
   };
 };

@@ -139,6 +139,53 @@ router.route('/').get(listTransactions).post(createTransaction);
 
 /**
  * @swagger
+ * /transactions/withdraw:
+ *   post:
+ *     tags: [Transactions]
+ *     summary: Withdraw funds from wallet (credit to real world)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               customerId:
+ *                 type: string
+ *                 description: Admin only; defaults to current user
+ *               amount:
+ *                 type: number
+ *               currency:
+ *                 type: string
+ *               method:
+ *                 type: string
+ *               note:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Withdrawal transaction created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Transaction'
+ *                 balance:
+ *                   type: number
+ *       400:
+ *         description: Invalid payload or insufficient funds
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/withdraw', withdrawTransaction);
+
+/**
+ * @swagger
  * /transactions/payment:
  *   post:
  *     tags: [Transactions]
@@ -154,14 +201,15 @@ router.route('/').get(listTransactions).post(createTransaction);
  *             properties:
  *               customerId:
  *                 type: string
- *                 description: Admin only; defaults to current user
- *               customerId:
- *                 type: number
  *                 description: Admin only; defaults to current customer
  *               providerId:
  *                 type: string
  *               amount:
  *                 type: number
+ *               currency:
+ *                 type: string
+ *               method:
+ *                 type: string
  *               note:
  *                 type: string
  *     responses:

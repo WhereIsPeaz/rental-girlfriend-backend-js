@@ -88,6 +88,37 @@ test('createTransaction validates amount, updates balance and sets customerId', 
   assert.equal(resCredit.statusCode, 201);
 });
 
+test('withdrawTransaction subtracts balance', async () => {
+  const payloads = [];
+  const TransactionModel = {
+    create: async (payload) => {
+      payloads.push(payload);
+      return payload;
+    },
+  };
+  const userRecord = {
+    _id: 'cust',
+    balance: 120,
+    save: async function () {},
+  };
+  const UserModel = {
+    findById: async () => userRecord,
+  };
+  const {withdrawTransaction} = buildTransactionController({TransactionModel, UserModel});
+
+  const resWithdraw = createRes();
+  await withdrawTransaction({user: {type: 'customer', id: 'cust'}, body: {amount: 20}}, resWithdraw);
+  assert.equal(payloads[0].action, 'debit');
+  assert.equal(payloads[0].balanceAfter, 100);
+  assert.equal(userRecord.balance, 100);
+  assert.equal(resWithdraw.body.balance, 100);
+  assert.equal(resWithdraw.statusCode, 201);
+
+  const resInsufficient = createRes();
+  await withdrawTransaction({user: {type: 'customer', id: 'cust'}, body: {amount: 150}}, resInsufficient);
+  assert.equal(resInsufficient.statusCode, 400);
+});
+
 test('paymentTransaction subtracts from customer and adds to provider', async () => {
   const payloads = [];
   const TransactionModel = {
