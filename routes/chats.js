@@ -2,7 +2,6 @@ const express = require('express');
 const {
   listChats,
   getChat,
-  getChatByBooking,
   createChat,
   updateChat,
   deleteChat,
@@ -190,44 +189,6 @@ router
  *       404:
  *         description: Chat not found
  */
-/**
- * @swagger
- * /chats/booking/{bookingId}:
- *   get:
- *     tags: [Chats]
- *     summary: Get chat id by booking id
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: bookingId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Chat id for booking
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     bookingId:
- *                       type: string
- *       403:
- *         description: Forbidden
- *       404:
- *         description: Chat not found
- */
-router.route('/booking/:bookingId').get(getChatByBooking);
-
 router
   .route('/:id')
   .get(getChat)
