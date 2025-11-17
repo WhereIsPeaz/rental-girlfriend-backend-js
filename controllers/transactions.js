@@ -63,6 +63,7 @@ const buildTransactionController = (TransactionModel = Transaction) => {
         amount,
         currency: (req.body.currency || 'THB').toUpperCase(),
         method: req.body.method || 'topup',
+        type: req.body.type || 'topup', // Add type field from request
         status: req.body.status || 'completed',
         note: req.body.note,
       };

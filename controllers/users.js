@@ -398,7 +398,7 @@ exports.getUserBalance = async (req, res) => {
   try {
     const Transaction = require("../models/Transaction");
     const id = req.params.id;
-
+    
     if (!req.user)
       return res
         .status(401)
@@ -415,7 +415,7 @@ exports.getUserBalance = async (req, res) => {
 
     // Calculate balance from transactions based on transaction type
     const transactions = await Transaction.find({ customerId: id });
-
+    
     const balance = transactions.reduce((sum, t) => {
       // Add for topup and refund, subtract for payment and withdrawal
       if (t.type === "topup" || t.type === "refund") {

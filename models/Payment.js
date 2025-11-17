@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const {randomUUID} = require('crypto');
 
-const PAYMENT_METHOD_ENUM = ['credit_card', 'promptpay', 'bank_transfer'];
+const PAYMENT_METHOD_ENUM = ['credit_card', 'promptpay', 'bank_transfer', 'wallet'];
 const PAYMENT_STATUS_ENUM = ['pending', 'completed', 'failed', 'refunded', 'partially_refunded'];
 
 const PaymentSchema = new mongoose.Schema(
