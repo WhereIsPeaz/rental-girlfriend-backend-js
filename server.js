@@ -26,6 +26,8 @@ const reviews = require('./routes/reviews');
 const users = require('./routes/users');
 const chats = require('./routes/chats');
 const transactions = require('./routes/transactions');
+const payments = require('./routes/payments');
+const withdrawals = require('./routes/withdrawals');
 // const books = require('./routes/books');
 
 const app = express();
@@ -53,6 +55,8 @@ api.use("/reviews", reviews);
 api.use("/users", users);
 api.use("/chats", chats);
 api.use("/transactions", transactions);
+api.use("/payments", payments);
+api.use("/withdrawals", withdrawals);
 // api.use("/books", require("./routes/books"));
 
 // Mount app router to api router
