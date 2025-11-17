@@ -135,11 +135,23 @@ exports.createWithdrawal = async (req, res, next) => {
       bankName,
       accountNumber,
       accountName,
-      status: 'pending',
+      status: 'completed', // Auto-approve withdrawal
       requestedAt: new Date(),
+      completedAt: new Date(),
     };
 
     const withdrawal = await Withdrawal.create(withdrawalData);
+
+    // Create withdrawal transaction immediately
+    await Transaction.create({
+      customerId: targetUserId,
+      amount: amount,
+      currency: 'THB',
+      method: 'bank_transfer',
+      type: 'withdrawal',
+      status: 'completed',
+      note: `ถอนเงินไปบัญชี ${bankName} (${accountNumber})`,
+    });
 
     res.status(201).json({
       success: true,
