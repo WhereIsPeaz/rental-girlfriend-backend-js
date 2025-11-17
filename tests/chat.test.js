@@ -17,11 +17,17 @@ const createRes = () => {
   return res;
 };
 
+const userModelStub = (users = []) => ({
+  find: () => ({
+    select: () => users,
+  }),
+});
+
 test('listChats returns only ids', async () => {
   const ChatModel = {
     find: async () => [{_id: 'chat-1'}, {_id: 'chat-2'}],
   };
-  const {listChats} = buildChatController({ChatModel});
+  const {listChats} = buildChatController({ChatModel, UserModel: userModelStub()});
   const res = createRes();
 
   await listChats({}, res);
@@ -37,7 +43,7 @@ test('getChat forbids non participants', async () => {
       messages: [],
     }),
   };
-  const {getChat} = buildChatController({ChatModel});
+  const {getChat} = buildChatController({ChatModel, UserModel: userModelStub()});
   const req = {params: {id: 'chat'}, user: {id: 'user', type: 'customer'}};
   const res = createRes();
 
@@ -58,7 +64,11 @@ test('getChat allows admin access', async () => {
   const ChatModel = {
     findById: async () => chat,
   };
-  const {getChat} = buildChatController({ChatModel});
+  const userStub = userModelStub([
+    {_id: 'cust', firstName: 'Alice', lastName: 'Wong'},
+    {_id: 'prov', username: 'provider01'},
+  ]);
+  const {getChat} = buildChatController({ChatModel, UserModel: userStub});
   const req = {params: {id: 'chat'}, user: {id: 'admin', type: 'admin'}};
   const res = createRes();
 
@@ -66,6 +76,8 @@ test('getChat allows admin access', async () => {
 
   assert.equal(res.statusCode, 200);
   assert.deepEqual(res.body.data.messages, chat.messages);
+  assert.equal(res.body.data.customerName, 'Alice Wong');
+  assert.equal(res.body.data.providerName, 'provider01');
 });
 
 test('postMessage stores trimmed content for participant', async () => {
@@ -79,7 +91,7 @@ test('postMessage stores trimmed content for participant', async () => {
   const ChatModel = {
     findById: async () => chat,
   };
-  const {postMessage} = buildChatController({ChatModel});
+  const {postMessage} = buildChatController({ChatModel, UserModel: userModelStub()});
   const req = {
     params: {id: 'chat'},
     user: {id: 'cust', type: 'customer'},
@@ -101,7 +113,7 @@ test('postMessage forbids admin senders', async () => {
       isParticipant: () => true,
     }),
   };
-  const {postMessage} = buildChatController({ChatModel});
+  const {postMessage} = buildChatController({ChatModel, UserModel: userModelStub()});
   const req = {params: {id: 'chat'}, user: {id: 'admin', type: 'admin'}, body: {message: 'hi'}};
   const res = createRes();
 
@@ -122,7 +134,7 @@ test('createChat requires valid booking', async () => {
       providerId: 'prov',
     }),
   };
-  const {createChat} = buildChatController({ChatModel, BookingModel});
+  const {createChat} = buildChatController({ChatModel, BookingModel, UserModel: userModelStub()});
   const req = {body: {bookingId: 'booking-1'}};
   const res = createRes();
 
@@ -140,7 +152,7 @@ test('updateChat validates payload', async () => {
   const ChatModel = {
     findById: async () => chat,
   };
-  const {updateChat} = buildChatController({ChatModel});
+  const {updateChat} = buildChatController({ChatModel, UserModel: userModelStub()});
 
   const resInvalid = createRes();
   await updateChat({params: {id: 'chat'}, body: {}}, resInvalid);
@@ -161,7 +173,7 @@ test('deleteChat removes chat', async () => {
       },
     }),
   };
-  const {deleteChat} = buildChatController({ChatModel});
+  const {deleteChat} = buildChatController({ChatModel, UserModel: userModelStub()});
   const res = createRes();
 
   await deleteChat({params: {id: 'chat'}}, res);
@@ -176,7 +188,7 @@ test('ensureChatForBookingInternal creates chat if missing', async () => {
     findOne: async () => null,
     create: async (payload) => payload,
   };
-  const {ensureChatForBookingInternal} = buildChatController({ChatModel});
+  const {ensureChatForBookingInternal} = buildChatController({ChatModel, UserModel: userModelStub()});
 
   const chat = await ensureChatForBookingInternal(booking);
 
