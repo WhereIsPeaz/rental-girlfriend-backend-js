@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const {randomUUID} = require('crypto');
 
 const STATUS_ENUM = ['pending', 'completed', 'failed'];
+const ACTION_ENUM = ['credit', 'debit']; // credit = add funds, debit = remove funds
 
 const TransactionSchema = new mongoose.Schema(
   {
@@ -33,6 +34,11 @@ const TransactionSchema = new mongoose.Schema(
       trim: true,
       maxlength: 120,
     },
+    action: {
+      type: String,
+      enum: ACTION_ENUM,
+      default: 'credit',
+    },
     status: {
       type: String,
       enum: STATUS_ENUM,
@@ -42,6 +48,15 @@ const TransactionSchema = new mongoose.Schema(
       type: String,
       maxlength: 500,
       default: '',
+    },
+    providerId: {
+      type: String,
+      ref: 'User',
+      default: null,
+    },
+    balanceAfter: {
+      type: Number,
+      default: null,
     },
   },
   {
