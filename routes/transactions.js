@@ -1,5 +1,10 @@
 const express = require('express');
-const {listTransactions, getTransaction, createTransaction} = require('../controllers/transactions');
+const {
+  listTransactions,
+  getTransaction,
+  createTransaction,
+  paymentTransaction,
+} = require('../controllers/transactions');
 const {protect} = require('../middleware/auth');
 
 const router = express.Router();
@@ -25,11 +30,17 @@ const router = express.Router();
  *           type: string
  *         method:
  *           type: string
+ *         action:
+ *           type: string
+ *           enum: [credit, debit]
+ *           description: credit = เพิ่มเงิน, debit = หักเงิน
  *         status:
  *           type: string
  *           enum: [pending, completed, failed]
  *         note:
  *           type: string
+ *         balanceAfter:
+ *           type: number
  *         createdAt:
  *           type: string
  *           format: date-time
@@ -68,6 +79,12 @@ router.use(protect);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Transaction'
+ *                 balance:
+ *                   type: number
+ *                   nullable: true
+ *                 balance:
+ *                   type: number
+ *                   nullable: true
  *       401:
  *         description: Unauthorized
  *   post:
@@ -91,6 +108,10 @@ router.use(protect);
  *                 type: string
  *               method:
  *                 type: string
+ *               action:
+ *                 type: string
+ *                 enum: [credit, debit]
+ *                 description: ไม่ระบุ = credit (เติมเงิน)
  *               status:
  *                 type: string
  *               note:
@@ -98,12 +119,121 @@ router.use(protect);
  *     responses:
  *       201:
  *         description: Created transaction
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Transaction'
+ *                 balance:
+ *                   type: number
  *       400:
  *         description: Invalid payload
  *       401:
  *         description: Unauthorized
  */
 router.route('/').get(listTransactions).post(createTransaction);
+
+/**
+ * @swagger
+ * /transactions/withdraw:
+ *   post:
+ *     tags: [Transactions]
+ *     summary: Withdraw funds from wallet (credit to real world)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               customerId:
+ *                 type: string
+ *                 description: Admin only; defaults to current user
+ *               amount:
+ *                 type: number
+ *               currency:
+ *                 type: string
+ *               method:
+ *                 type: string
+ *               note:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Withdrawal transaction created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Transaction'
+ *                 balance:
+ *                   type: number
+ *       400:
+ *         description: Invalid payload or insufficient funds
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/withdraw', withdrawTransaction);
+
+/**
+ * @swagger
+ * /transactions/payment:
+ *   post:
+ *     tags: [Transactions]
+ *     summary: Pay a provider (debit customer, credit provider)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               customerId:
+ *                 type: string
+ *                 description: Admin only; defaults to current customer
+ *               providerId:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *               currency:
+ *                 type: string
+ *               method:
+ *                 type: string
+ *               note:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Payment processed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Transaction'
+ *                 customerBalance:
+ *                   type: number
+ *                 providerBalance:
+ *                   type: number
+ *       400:
+ *         description: Invalid payload or insufficient funds
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/payment', paymentTransaction);
 
 /**
  * @swagger
@@ -122,6 +252,17 @@ router.route('/').get(listTransactions).post(createTransaction);
  *     responses:
  *       200:
  *         description: Transaction detail
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Transaction'
+ *                 balance:
+ *                   type: number
  *       403:
  *         description: Forbidden
  *       404:

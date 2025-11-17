@@ -107,6 +107,11 @@ const UserSchema = new mongoose.Schema({
     verified: { 
         type: Boolean, 
         default: AUTO_VERIFY_USER 
+    },
+    balance: {
+        type: Number,
+        default: 0,
+        min: [0, 'Balance cannot be negative']
     }
 }, {
     timestamps: true,
