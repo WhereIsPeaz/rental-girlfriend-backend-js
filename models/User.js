@@ -8,6 +8,7 @@ const GENDER_ENUM = ['ชาย', 'หญิง'];
 const ROLE_ENUM = ['customer', 'provider', 'admin'];
 const AUTO_VERIFY_USER = true;
 const SALT_ROUNDS = 10;
+const PHONE_REGEX = /^\+?[1-9]\d{6,14}$/;
 
 const UserSchema = new mongoose.Schema({
     _id: {
@@ -57,7 +58,15 @@ const UserSchema = new mongoose.Schema({
         }
     }, 
     idCard: { type: String, default: '' },
-    phone: { type: String, default: '' },
+    phone: {
+        type: String,
+        default: '',
+        set: (val) => typeof val === 'string' ? val.trim() : val,
+        validate: {
+            validator: (value) => !value || PHONE_REGEX.test(value),
+            message: 'phone must be a valid international number (e.g. +123456789)'
+        }
+    },
     gender: { 
         type: String,
         enum: GENDER_ENUM,
