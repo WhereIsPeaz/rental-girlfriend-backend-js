@@ -1,6 +1,7 @@
 // controllers/reviews.js
 const Review = require('../models/Review');
 const Service = require('../models/Service');
+const Booking = require('../models/Booking');
 
 const sanitizeReview = (doc) => {
   if (!doc) return null;
@@ -66,6 +67,9 @@ exports.listReviews = async (req, res) => {
     if (req.query.customerId) {
       filter.customerId = req.query.customerId;
     }
+    if (req.query.bookingId) {
+      filter.bookingId = req.query.bookingId;
+    }
 
     const page = Math.max(1, parseInt(req.query.page || '1', 10));
     const limit = Math.min(100, parseInt(req.query.limit || '20', 10));
@@ -115,6 +119,12 @@ exports.createReview = async (req, res) => {
         .json({ success: false, message: 'Only customers or admins can create reviews' });
     }
 
+    if (!req.body.bookingId) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'bookingId is required' });
+    }
+
     const service = await Service.findById(req.body.serviceId);
     if (!service) {
       return res
@@ -122,15 +132,45 @@ exports.createReview = async (req, res) => {
         .json({ success: false, message: 'Service not found' });
     }
 
-    const customerId =
-      userType === 'admin' && req.body.customerId
-        ? req.body.customerId
-        : currentUserId(req);
+    const booking = await Booking.findById(req.body.bookingId);
+    if (!booking) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Booking not found' });
+    }
+
+    const serviceIdString = service.id || service._id;
+    if (String(booking.serviceId) !== String(serviceIdString)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'bookingId does not belong to the provided serviceId' });
+    }
+
+    const authenticatedUserId = currentUserId(req);
+    if (!authenticatedUserId) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'customerId is required' });
+    }
+
+    if (userType !== 'admin' && booking.customerId !== authenticatedUserId) {
+      return res
+        .status(403)
+        .json({ success: false, message: 'You can only review your own bookings' });
+    }
+
+    if (userType === 'admin' && req.body.customerId && req.body.customerId !== booking.customerId) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'customerId does not match booking' });
+    }
+
+    const customerId = booking.customerId;
 
     if (!customerId) {
       return res
         .status(400)
-        .json({ success: false, message: 'customerId is required' });
+        .json({ success: false, message: 'Booking is missing customer information' });
     }
 
     const rating = toNumber(req.body.rating);
@@ -141,7 +181,8 @@ exports.createReview = async (req, res) => {
     }
 
     const reviewPayload = {
-      serviceId: service.id || service._id,
+      serviceId: booking.serviceId,
+      bookingId: booking.id || booking._id,
       customerId,
       rating,
       comment: req.body.comment,
